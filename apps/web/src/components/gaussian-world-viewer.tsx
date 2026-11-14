@@ -6,42 +6,80 @@ type Props = { src: string };
 
 export default function GaussianWorldViewer({ src }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const [status, setStatus] = useState("Preparing 3D viewer…");
+  const [status, setStatus] = useState("Preparing immersive viewer…");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
-    let viewer: import("@mkkellogg/gaussian-splats-3d").Viewer | undefined;
+    let frame = 0;
+    let disposed = false;
+    let renderer: import("three").WebGLRenderer | undefined;
+    let controls: import("three/examples/jsm/controls/OrbitControls.js").OrbitControls | undefined;
+    let scene: import("three").Scene | undefined;
+    let splats: import("@sparkjsdev/spark").SplatMesh | undefined;
+    let resizeObserver: ResizeObserver | undefined;
+
     async function load() {
-      const extension = src.split("?")[0].split(".").pop()?.toLowerCase();
-      if (!["ply", "splat", "ksplat"].includes(extension || "")) {
-        setError("This viewer currently accepts .ply, .splat, or .ksplat scenes. Convert .spz to a supported format before loading.");
-        return;
-      }
       try {
-        const module = await import("@mkkellogg/gaussian-splats-3d");
-        if (cancelled || !rootRef.current) return;
-        viewer = new module.Viewer({
-          rootElement: rootRef.current,
-          sharedMemoryForWorkers: false,
-          gpuAcceleratedSort: false,
-          initialCameraPosition: [0, 1, 5],
-          initialCameraLookAt: [0, 0, 0],
-          cameraUp: [0, 1, 0],
+        const [THREE, Spark, Controls] = await Promise.all([
+          import("three"),
+          import("@sparkjsdev/spark"),
+          import("three/addons/controls/OrbitControls.js"),
+        ]);
+        if (disposed || !rootRef.current) return;
+
+        const host = rootRef.current;
+        scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(65, 1, 0.01, 1000);
+        camera.position.set(0, 0, 2.5);
+        renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(host.clientWidth || 800, host.clientHeight || 600);
+        host.appendChild(renderer.domElement);
+
+        const sparkRenderer = new Spark.SparkRenderer({ renderer });
+        scene.add(sparkRenderer);
+        controls = new Controls.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+
+        splats = new Spark.SplatMesh({ url: src });
+        splats.quaternion.set(1, 0, 0, 0);
+        scene.add(splats);
+        setStatus("Loading 3D scene…");
+
+        resizeObserver = new ResizeObserver(() => {
+          if (!renderer || !rootRef.current) return;
+          const width = Math.max(1, rootRef.current.clientWidth);
+          const height = Math.max(1, rootRef.current.clientHeight);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+          renderer.setSize(width, height);
         });
-        setStatus("Loading scene…");
-        await viewer.addSplatScene(src, { showLoadingUI: false, progressiveLoad: true });
-        if (cancelled) return;
-        viewer.start();
-        setStatus("World loaded · drag to look around");
+        resizeObserver.observe(host);
+
+        const animate = () => {
+          if (disposed || !renderer || !scene) return;
+          frame = window.requestAnimationFrame(animate);
+          controls?.update();
+          renderer.render(scene, camera);
+        };
+        animate();
+        setStatus("World viewer ready · drag to look around, scroll to zoom");
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Could not load this 3D scene.");
+        if (!disposed) setError(err instanceof Error ? err.message : "Could not initialize the 3D viewer.");
       }
     }
+
     void load();
     return () => {
-      cancelled = true;
-      if (viewer) void viewer.dispose().catch(() => undefined);
+      disposed = true;
+      window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      controls?.dispose();
+      if (splats && scene) scene.remove(splats);
+      renderer?.setAnimationLoop(null);
+      renderer?.dispose();
+      renderer?.domElement.remove();
     };
   }, [src]);
 

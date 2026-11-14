@@ -42,10 +42,19 @@ export default function GaussianWorldViewer({ src }: Props) {
         controls.enableDamping = true;
         controls.dampingFactor = 0.06;
 
-        splats = new Spark.SplatMesh({ url: src });
+        splats = new Spark.SplatMesh({
+          url: src,
+          onProgress: (event: ProgressEvent) => {
+            if (!disposed && event.lengthComputable) {
+              setStatus(`Downloading scene… ${Math.round((event.loaded / event.total) * 100)}%`);
+            }
+          },
+        });
+        setStatus("Downloading and preparing 3D scene…");
+        await splats.initialized;
+        if (disposed || !scene) return;
         splats.quaternion.set(1, 0, 0, 0);
         scene.add(splats);
-        setStatus("Loading 3D scene…");
 
         resizeObserver = new ResizeObserver(() => {
           if (!renderer || !rootRef.current) return;

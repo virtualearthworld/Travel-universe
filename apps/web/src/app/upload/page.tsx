@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type Job = { job_id: string; status: string; progress?: { stage?: string; percent?: number }; result?: { status?: string; duration_seconds?: string; frame_count?: string; next_step?: string }; error?: string };
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -46,7 +47,7 @@ export default function UploadPage() {
   const percent = job?.progress?.percent ?? (job?.status === "success" ? 100 : 0);
   return <main className="min-h-screen bg-[#07111f] px-5 py-10 text-white">
     <div className="mx-auto max-w-3xl">
-      <a href="/" className="text-sm text-[#54d6c8]">← Travel Universe</a>
+      <Link href="/" className="text-sm text-[#54d6c8]">← Travel Universe</Link>
       <p className="mt-12 text-xs font-bold tracking-[.3em] text-[#54d6c8]">CREATE A WORLD</p>
       <h1 className="mt-4 text-4xl font-semibold sm:text-5xl">Bring your travel video.</h1>
       <p className="mt-5 max-w-2xl leading-7 text-white/60">Upload an MP4, MOV, or WebM clip (up to 500 MB and 10 minutes). The system stores it, validates the footage, and extracts frames for the 3D reconstruction stage.</p>

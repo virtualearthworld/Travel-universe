@@ -3,7 +3,7 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, "feat/**"]
+    branches: [main]
 permissions:
   contents: read
 jobs:
@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm install --no-audit --no-fund
       - run: npm run lint --workspace @travel-universe/web
       - run: npm run typecheck --workspace @travel-universe/web
   backend:

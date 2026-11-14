@@ -8,19 +8,23 @@ permissions:
   contents: read
 jobs:
   frontend:
+    name: Frontend lint and typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: {node-version: 20, cache: npm}
+        with:
+          node-version: 20
       - run: npm install
       - run: npm run lint --workspace @travel-universe/web
       - run: npm run typecheck --workspace @travel-universe/web
   backend:
+    name: API and worker syntax
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: {python-version: "3.12"}
+        with:
+          python-version: "3.12"
       - run: pip install -r apps/api/requirements.txt
       - run: python -m compileall -q apps/api/app apps/worker

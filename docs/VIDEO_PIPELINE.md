@@ -26,3 +26,6 @@
 
 ## Reconstruction boundary
 Frame extraction is only input preparation. A separate CUDA-capable worker must run camera/pose estimation and a compatible Gaussian-Splatting training pipeline, optimize/validate the result, package a real `.spz` artifact, and publish a durable world record. Until this exists, job completion means **preprocessing completed**, not **3D world ready**. No GPU trainer is configured in this repository yet.
+
+## Browser world viewer
+The web app has an `/world` route backed by the Three.js Gaussian Splat viewer package. Paste a browser-accessible scene URL ending in `.ply`, `.splat`, or `.ksplat`. The viewer uses its built-in orbit controls. The selected renderer does **not** load `.spz` directly; convert SPZ output to a supported PLY/KSPLAT format before serving it. The scene host must allow cross-origin browser requests. This is a viewer integration, not a generated scene; no sample 3D world is bundled.

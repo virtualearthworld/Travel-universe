@@ -28,3 +28,4 @@ jobs:
           python-version: "3.12"
       - run: pip install -r apps/api/requirements.txt
       - run: python -m compileall -q apps/api/app apps/worker
+      - run: pytest -q apps/api/tests

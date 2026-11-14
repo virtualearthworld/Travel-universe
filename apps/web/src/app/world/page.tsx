@@ -12,7 +12,7 @@ export default function WorldPage() {
       <Link href="/" className="text-sm text-[#54d6c8]">← Travel Universe</Link>
       <p className="mt-10 text-xs font-bold tracking-[.3em] text-[#54d6c8]">ENTER A WORLD</p>
       <h1 className="mt-3 text-4xl font-semibold">Explore a reconstructed place.</h1>
-      <p className="mt-4 max-w-3xl leading-7 text-white/60">Load a Gaussian Splat scene URL to explore it with the browser viewer. For now, the renderer accepts PLY, SPLAT and KSPLAT scene files.</p>
+      <p className="mt-4 max-w-3xl leading-7 text-white/60">Load a Gaussian Splat scene URL to explore it with the browser viewer. The Spark renderer supports PLY, SPZ, SPLAT and KSPLAT scene files.</p>
       <form className="mt-7 flex flex-col gap-3 sm:flex-row" onSubmit={e => { e.preventDefault(); setActive(src.trim()); }}>
         <input aria-label="3D scene URL" value={src} onChange={e => setSrc(e.target.value)} placeholder="https://…/your-scene.ply" className="min-w-0 flex-1 rounded-full border border-white/15 bg-white/[.06] px-5 py-3 text-sm outline-none focus:border-[#54d6c8]" />
         <button type="submit" disabled={!src.trim()} className="rounded-full bg-[#54d6c8] px-7 py-3 font-semibold text-[#07111f] disabled:opacity-40">Load world</button>

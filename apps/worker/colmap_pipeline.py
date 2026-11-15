@@ -52,12 +52,13 @@ def run_colmap_sparse_reconstruction(
             "--image_path", str(images),
             "--ImageReader.single_camera", "1",
             # Avoid OpenGL/CUDA context creation in headless Colab.
-            "--SiftExtraction.use_gpu", "0",
+            "--FeatureExtraction.use_gpu", "0",
+            "--FeatureExtraction.num_threads", "4",
         ],
         [
             binary, "sequential_matcher",
             "--database_path", str(database),
-            "--SiftMatching.use_gpu", "0",
+            "--FeatureMatching.use_gpu", "0",
         ],
         [
             binary, "mapper",

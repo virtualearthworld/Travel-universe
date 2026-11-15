@@ -6,6 +6,7 @@ process; a real run requires COLMAP installed on the worker host/container.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -63,9 +64,14 @@ def run_colmap_sparse_reconstruction(
         ],
     ]
 
+    # Colab and other cloud workers are headless. Force Qt-based COLMAP builds
+    # to use their offscreen platform plugin instead of trying to open a display.
+    colmap_env = os.environ.copy()
+    colmap_env.setdefault("QT_QPA_PLATFORM", "offscreen")
+
     for command in commands:
         try:
-            runner(command, capture_output=True, text=True, check=True, timeout=3600)
+            runner(command, capture_output=True, text=True, check=True, timeout=3600, env=colmap_env)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
             raise ColmapError(
                 f"COLMAP stage '{command[1]}' failed: {getattr(exc, 'stderr', '') or exc}"

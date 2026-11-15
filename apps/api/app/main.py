@@ -7,7 +7,7 @@ from celery import Celery
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-API_VERSION = "0.3.0"
+API_VERSION = "0.4.0"
 MAX_VIDEO_BYTES = 500 * 1024 * 1024
 ALLOWED_TYPES = {"video/mp4", "video/quicktime", "video/webm"}
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".webm"}
@@ -51,7 +51,6 @@ def ensure_bucket(client: Any) -> None:
     try:
         client.create_bucket(Bucket=BUCKET)
     except ClientError as exc:
-        # Another API replica may have created it between head_bucket and create_bucket.
         try:
             client.head_bucket(Bucket=BUCKET)
             return
@@ -113,7 +112,6 @@ async def get_job(job_id: str) -> dict[str, Any]:
     if result.successful():
         outcome = result.result if isinstance(result.result, dict) else {}
         payload["result"] = outcome
-        # Extracted frames are preparation inputs, never a published 3D world.
         payload["world_ready"] = bool(outcome.get("world_asset_key")) and outcome.get("status") == "world_ready"
     elif result.failed():
         payload["error"] = "Processing failed. Check the worker logs and retry the upload."
@@ -124,3 +122,26 @@ async def get_job(job_id: str) -> dict[str, Any]:
     else:
         payload["world_ready"] = False
     return payload
+
+
+@app.get("/api/v1/worlds/{video_id}/asset", tags=["worlds"])
+async def get_world_asset(video_id: str) -> dict[str, str]:
+    """Return a short-lived URL only when the reconstructed SPZ object exists."""
+    if not video_id or len(video_id) > 64 or any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_" for ch in video_id):
+        raise HTTPException(status_code=400, detail="Invalid video ID.")
+    client = storage_client()
+    object_key = f"worlds/{video_id}/scene.spz"
+    try:
+        client.head_object(Bucket=BUCKET, Key=object_key)
+        url = client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": BUCKET, "Key": object_key},
+            ExpiresIn=900,
+        )
+    except ClientError as exc:
+        code = str(exc.response.get("Error", {}).get("Code", ""))
+        status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+        if code in {"404", "NoSuchKey", "NotFound"} or status == 404:
+            raise HTTPException(status_code=404, detail="This destination has not been reconstructed yet.") from exc
+        raise HTTPException(status_code=503, detail="World storage is temporarily unavailable.") from exc
+    return {"video_id": video_id, "asset_url": url, "format": "spz", "expires_in": 900}

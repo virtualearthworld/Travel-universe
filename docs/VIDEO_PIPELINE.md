@@ -55,3 +55,18 @@ This project is being developed and checked through GitHub, GitHub Actions, and 
 - Supported formats: MP4, MOV/QuickTime, WebM.
 - No production authentication, user quotas, resumable uploads, malware scanning, persistent relational job records, signed asset URLs, or live public backend yet.
 - The viewer is a rendering surface, not a video-to-3D reconstruction engine.
+
+
+## End-to-end task orchestration (Phase 6)
+
+When `ENABLE_RECONSTRUCTION_PIPELINE=true` is set on the CPU worker, the original upload task replaces itself with a Celery chain that preserves the original job ID and runs:
+
+1. `reconstruction.process_video` — validate the upload and extract timestamped frames.
+2. `reconstruction.estimate_camera_poses` — run COLMAP on the default CPU queue and persist the sparse model.
+3. `reconstruction.train_gaussian_splats` — run only on the dedicated `gpu` queue, validate the PLY intermediate and SPZ export, then publish the scene object.
+
+The standard CPU worker must have a compatible COLMAP executable installed before enabling this option. The optional GPU worker must have compatible CUDA, PyTorch, gsplat, a configured `GSPLAT_TRAIN_COMMAND`, and a verified `SPLAT_EXPORT_COMMAND`. The Compose file passes these settings through but does not download or install proprietary/model-specific trainer code or silently provision GPU hardware.
+
+The option defaults to `false`, so ordinary CPU-only development remains safe and uploads stop after frame preparation. Set it to `true` only after both reconstruction workers are configured; start the GPU profile with `docker compose --profile gpu up --build`. If the GPU worker is not running, the final chain stage will remain queued on the `gpu` queue. A successful job is still marked world-ready only after a non-empty SPZ object has been uploaded and the API can find it.
+
+CI tests the chain structure and queue separation with no GPU. These tests verify orchestration contracts only; they do not execute COLMAP, train a scene, or prove a real video conversion.

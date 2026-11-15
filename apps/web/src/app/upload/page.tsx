@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 type Job = { job_id: string; status: string; progress?: { stage?: string; percent?: number }; result?: { status?: string; duration_seconds?: string; frame_count?: string; next_step?: string }; error?: string };
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API = process.env.NEXT_PUBLIC_API_URL || "";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -14,7 +14,7 @@ export default function UploadPage() {
   const [videoId, setVideoId] = useState("");
 
   useEffect(() => {
-    if (!job?.job_id || ["success", "failure"].includes(job.status)) return;
+    if (!API || !job?.job_id || ["success", "failure"].includes(job.status)) return;
     const timer = window.setInterval(async () => {
       try {
         const response = await fetch(`${API}/api/v1/jobs/${job.job_id}`);
@@ -22,7 +22,7 @@ export default function UploadPage() {
         const next = (await response.json()) as Job;
         setJob(next);
       } catch {
-        setMessage("Cannot reach the processing service. Check that the local stack is running.");
+        setMessage("Cannot reach the video-processing service. Please try again later.");
       }
     }, 2500);
     return () => window.clearInterval(timer);
@@ -30,6 +30,10 @@ export default function UploadPage() {
 
   async function submit() {
     if (!file) return;
+    if (!API) {
+      setMessage("The Travel Universe website preview is online. Video processing is not connected yet; the upload service must be deployed before videos can be analyzed.");
+      return;
+    }
     setBusy(true); setMessage(""); setJob(null);
     try {
       const body = new FormData(); body.append("file", file);
@@ -53,7 +57,7 @@ export default function UploadPage() {
       <p className="mt-5 max-w-2xl leading-7 text-white/60">Upload an MP4, MOV, or WebM clip (up to 500 MB and 10 minutes). The system stores it, validates the footage, and extracts frames for the 3D reconstruction stage.</p>
       <section className="mt-10 rounded-3xl border border-white/10 bg-white/[.04] p-7">
         <label htmlFor="video" className="block text-sm font-medium">Choose a travel video</label>
-        <input id="video" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e => { setFile(e.target.files?.[0] ?? null); setJob(null); setVideoId(""); }} className="mt-4 block w-full rounded-xl border border-white/15 bg-black/20 p-4 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#54d6c8] file:px-4 file:py-2 file:font-semibold file:text-[#07111f]" />
+        <input id="video" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" onChange={e => { setFile(e.target.files?.[0] ?? null); setJob(null); setVideoId(""); setMessage(""); }} className="mt-4 block w-full rounded-xl border border-white/15 bg-black/20 p-4 text-sm file:mr-4 file:rounded-full file:border-0 file:bg-[#54d6c8] file:px-4 file:py-2 file:font-semibold file:text-[#07111f]" />
         {file && <p className="mt-3 text-xs text-white/50">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p>}
         <button onClick={submit} disabled={!file || busy} className="mt-6 rounded-full bg-[#54d6c8] px-7 py-3 font-semibold text-[#07111f] disabled:cursor-not-allowed disabled:opacity-40">{busy ? "Uploading…" : "Upload and analyze"}</button>
         {message && <p role="status" className="mt-5 text-sm text-white/75">{message}</p>}
@@ -66,7 +70,7 @@ export default function UploadPage() {
         {job.error && <p className="mt-4 text-sm text-red-300">{job.error}</p>}
         <p className="mt-5 break-all text-xs text-white/35">Video ID: {videoId} · Job ID: {job.job_id}</p>
       </section>}
-      <p className="mt-8 text-xs leading-6 text-white/35">Important: this build currently validates and prepares video frames. A CUDA-enabled Gaussian Splatting trainer and .spz exporter are still required to produce the final explorable 3D world.</p>
+      <p className="mt-8 text-xs leading-6 text-white/35">The current pipeline prepares video frames. A GPU-enabled Gaussian Splatting trainer and scene exporter are still required to create the final explorable 3D world.</p>
     </div>
   </main>;
 }

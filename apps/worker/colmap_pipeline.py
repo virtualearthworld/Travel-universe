@@ -43,7 +43,13 @@ def run_colmap_sparse_reconstruction(
     output.mkdir(parents=True, exist_ok=True)
     database = output / "database.db"
     sparse_dir = output / "sparse"
-    sparse_dir.mkdir(exist_ok=True)
+    # A previous failed COLMAP attempt may leave a partial SQLite database or
+    # incomplete sparse folders. Start this retry from a clean COLMAP workspace.
+    if database.exists():
+        database.unlink()
+    if sparse_dir.exists():
+        shutil.rmtree(sparse_dir)
+    sparse_dir.mkdir(parents=True, exist_ok=True)
 
     commands = [
         [

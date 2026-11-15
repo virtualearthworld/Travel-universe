@@ -157,14 +157,10 @@ A successful COLMAP result is **not yet a 3D world**. It means camera poses and 
 Prepare the directory expected by the gsplat COLMAP dataset loader:
 
 ```python
-sparse_candidates = sorted((DATA / 'colmap' / 'sparse').glob('*'))
-model_dir = next((p for p in sparse_candidates if p.is_dir() and
-                  all((p / f).is_file() for f in
-                      ['cameras.bin','images.bin','points3D.bin'])), None)
-assert model_dir is not None, "No valid COLMAP sparse model found"
-(DATA / 'sparse').mkdir(exist_ok=True)
-shutil.copytree(model_dir, DATA / 'sparse' / '0', dirs_exist_ok=True)
-print("gsplat dataset:", DATA)
+model_dir = Path(colmap_result["sparse_model_directory"])
+assert all((model_dir / f).is_file() for f in
+           ['cameras.bin','images.bin','points3D.bin'])
+print("Validated COLMAP model:", model_dir)
 ```
 
 ## 8. Install gsplat and train
@@ -182,14 +178,10 @@ Run a short initial training attempt first. The command below is a smoke-test co
 !python /content/gsplat/examples/simple_trainer.py default \
   --data_dir /content/tu_dataset \
   --data_factor 2 \
-  --result_dir /content/tu_results \
-  --max_steps 7000 \
-  --save_ply True \
-  --ply_steps '[7000]' \
-  --disable_viewer True
+  --result_dir /content/tu_results
 ```
 
-The trainer and CUDA extensions are version-sensitive. If installation or training fails, preserve the full error output and the Colab GPU/PyTorch version before changing package versions. A T4 may run out of memory or be reclaimed before training finishes. Do not assume a run succeeded until the output files exist and are non-empty.
+The trainer and CUDA extensions are version-sensitive. The command above follows the current official COLMAP example; it does not guarantee a PLY export at a particular path. Inspect the result directory and the installed trainer's options/source to identify the actual PLY export mechanism before proceeding. Do not assume a run succeeded until a non-empty PLY exists. The repository's Gaussian Splat adapter expects a trainer wrapper that writes exactly `scene.ply` and an exporter wrapper that writes exactly `scene.spz`; the upstream gsplat example is not a drop-in replacement for those wrapper commands. A T4 may run out of memory or be reclaimed before training finishes. Preserve the full error output and the Colab GPU/PyTorch version before changing package versions.
 
 ## 9. Convert the trained PLY to SPZ
 

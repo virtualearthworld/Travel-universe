@@ -32,7 +32,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r apps/api/requirements.txt
       - run: python -m compileall -q apps/api/app apps/api/tests apps/worker
-      - run: PYTHONPATH=apps/api pytest -q apps/api/tests
+      - run: PYTHONPATH=apps/api:apps/worker pytest -q apps/api/tests apps/worker/tests
 
   compose:
     name: Docker Compose configuration

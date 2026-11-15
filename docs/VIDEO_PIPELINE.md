@@ -18,6 +18,13 @@ This is preprocessing only. It does not yet estimate camera poses, train a Gauss
 - `POST /api/v1/videos/upload`: multipart field `file`; returns HTTP 202 with `video_id`, `job_id`, and queue status.
 - `GET /api/v1/jobs/{job_id}`: Celery state, progress metadata, and terminal result/error.
 
+## Render deployment preparation
+The repository includes a Render Blueprint at `render.yaml` defining the FastAPI service, Celery background worker, and managed Redis service. It is a deployment template only; adding the file does not create services or incur charges.
+
+**Cost warning:** the blueprint currently specifies Render's `starter` plans for the API, worker, and Redis. These are not a free deployment. Review Render's live pricing and choose whether to deploy before creating the services. S3-compatible object storage is separate and must also be provisioned. The blueprint intentionally leaves the storage endpoint and credentials as manual environment values; never commit those secrets.
+
+When storage is ready, set `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, and `S3_REGION` for both API and worker. The blueprint uses Redis's private connection string for both services. After deployment, copy the API's public HTTPS URL into the GitHub repository variable `NEXT_PUBLIC_API_URL`, then rerun the **Deploy Travel Universe website** workflow.
+
 ## Connect the hosted website
 The GitHub Pages frontend is static, so the API must run as a separate public HTTPS service. Configure the GitHub repository variable `NEXT_PUBLIC_API_URL` with the API's public base URL (no trailing slash), then rerun the **Deploy Travel Universe website** workflow so the URL is embedded in the frontend build.
 

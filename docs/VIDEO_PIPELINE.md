@@ -21,6 +21,12 @@ The worker now exposes a separate `reconstruction.estimate_camera_poses` Celery 
 This stage requires the external `colmap` executable on the worker PATH. The standard CPU worker image does not install COLMAP automatically; install a compatible COLMAP build in the environment that will execute this task. GitHub CI uses mocked subprocess tests and does not claim to run COLMAP or process a real travel video.
 
 A successful result is `sparse_reconstruction_ready_gsplat_required`, not `world_ready`. Sparse camera poses and points are only the input to the next stage: CUDA-capable Gaussian Splat training, scene validation, and real `.spz` export.
+\n
+## Gaussian Splat training and export (Phase 4)
+
+The optional GPU worker now has a separate `reconstruction.train_gaussian_splats` task and a validation adapter. It consumes the original frame archive plus the COLMAP sparse-model archive, checks for PyTorch, gsplat, and CUDA, invokes a configured training entry point (`GSPLAT_TRAIN_COMMAND`), then invokes a configured PLY-to-SPZ converter (`SPLAT_EXPORT_COMMAND`). It validates that both the intermediate PLY and final SPZ are non-empty before uploading the SPZ asset and returning `status: world_ready` with its object key.
+
+The trainer and converter are deployment-provided commands, not bundled implementations. The current GPU image does not install a pinned CUDA/PyTorch/gsplat stack or a converter automatically. Configure compatible dependencies and both commands on a CUDA-capable worker before dispatching this task. CPU CI mocks those boundaries; it does not perform real training or prove a travel-video reconstruction. The web viewer already uses Spark's `SplatMesh` to load an SPZ URL, but the public site still needs a live API/storage configuration and a real generated asset to display a reconstructed world.
 \n## API routes
 
 - `GET /health`: API process health.

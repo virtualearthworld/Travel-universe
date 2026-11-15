@@ -16,5 +16,6 @@ COPY apps/worker/requirements.txt ./requirements.txt
 RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
 COPY apps/worker/app.py ./app.py
 COPY apps/worker/colmap_pipeline.py ./colmap_pipeline.py
+COPY apps/worker/gaussian_splat_pipeline.py ./gaussian_splat_pipeline.py
 
 CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=INFO", "-Q", "gpu"]

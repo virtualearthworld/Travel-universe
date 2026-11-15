@@ -18,7 +18,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
       - run: npm install --no-audit --no-fund
       - run: npm run lint --workspace @travel-universe/web
       - run: npm run typecheck --workspace @travel-universe/web
@@ -32,7 +31,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r apps/api/requirements.txt
-      - run: python -m compileall -q apps/api/app apps/worker
+      - run: python -m compileall -q apps/api/app apps/api/tests apps/worker
       - run: pytest -q apps/api/tests
 
   compose:

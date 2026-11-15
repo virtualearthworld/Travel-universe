@@ -24,13 +24,13 @@ docker compose up --build
 
 Open the web app at `http://localhost:3000`, upload at `/upload`, API health at `http://localhost:8000/health`, API docs at `http://localhost:8000/docs`, and MinIO console at `http://localhost:9001`.
 
-The upload API accepts MP4, MOV and WebM up to 500 MB. The current standard worker validates footage, extracts two frames per second, and stores a reconstruction-input ZIP. This is preprocessing, not a completed 3D conversion.
+The upload API accepts MP4, MOV and WebM up to 500 MB. By default, the standard worker validates footage, extracts two frames per second, and stores a reconstruction-input ZIP. To run the full chain, configure COLMAP on the CPU worker and a compatible CUDA/gsplat trainer plus SPZ exporter on the GPU worker, then set `ENABLE_RECONSTRUCTION_PIPELINE=true` in `.env` and start the optional GPU profile. This code path is not enabled or proven on the public GitHub Pages deployment.
 
 ## Implementation status (verified)
 
 - Repository foundation, Next.js interface, GitHub Pages deployment, FastAPI upload endpoint, object storage integration, Redis/Celery queue and FFmpeg frame extraction are present.
-- A COLMAP adapter exists, but the standard worker image does not install COLMAP and the current upload task does not automatically run the COLMAP stage.
-- A Gaussian Splat adapter exists. It requires a CUDA-enabled PyTorch/gsplat environment plus externally configured `GSPLAT_TRAIN_COMMAND` and `SPLAT_EXPORT_COMMAND`; those dependencies and commands are not bundled or configured by GitHub Pages.
+- An opt-in Celery chain now connects preprocessing → COLMAP on the CPU queue → Gaussian Splat training/export on the dedicated GPU queue. It is disabled by default; the standard worker image still needs a compatible COLMAP executable.
+- The Gaussian Splat adapter requires a CUDA-enabled PyTorch/gsplat environment plus externally configured `GSPLAT_TRAIN_COMMAND` and `SPLAT_EXPORT_COMMAND`; those dependencies and commands are not bundled or configured by GitHub Pages.
 - The Spark-based browser viewer can load a compatible scene URL. The upload-to-world handoff is being completed; a real scene from a user travel video has not yet been generated and validated.
 - Production API/object storage hosting, GPU execution, durable job records, authentication, secrets management, backups and operational monitoring are not configured.
 
@@ -39,3 +39,6 @@ The upload API accepts MP4, MOV and WebM up to 500 MB. The current standard work
 ## Cost and infrastructure boundary
 
 GitHub Pages hosts static frontend files. GitHub Actions runs temporary CI jobs; it is not a persistent API, object store, queue or GPU server. The project can be developed and its code tested through GitHub without buying hardware or creating another repository, but actual Gaussian Splat reconstruction still needs an available compatible compute runtime. No paid service or new hardware is assumed by this repository.
+
+
+See [the video pipeline guide](docs/VIDEO_PIPELINE.md) for the opt-in orchestration requirements and exact compute limitations.

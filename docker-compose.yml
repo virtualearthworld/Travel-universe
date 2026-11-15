@@ -57,6 +57,7 @@ services:
       S3_BUCKET: ${S3_BUCKET:-travel-universe-media}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-local_minio_change_me}
+      ENABLE_RECONSTRUCTION_PIPELINE: ${ENABLE_RECONSTRUCTION_PIPELINE:-false}
     depends_on:
       redis: {condition: service_healthy}
       minio: {condition: service_healthy}
@@ -69,6 +70,8 @@ services:
       S3_BUCKET: ${S3_BUCKET:-travel-universe-media}
       S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       S3_SECRET_KEY: ${S3_SECRET_KEY:-local_minio_change_me}
+      GSPLAT_TRAIN_COMMAND: ${GSPLAT_TRAIN_COMMAND:-}
+      SPLAT_EXPORT_COMMAND: ${SPLAT_EXPORT_COMMAND:-}
     depends_on:
       redis: {condition: service_healthy}
       minio: {condition: service_healthy}

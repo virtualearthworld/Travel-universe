@@ -18,6 +18,17 @@ def test_api_root_exposes_version():
     assert response.status_code == 200
     assert response.json()["name"] == "Travel Universe API"
 
+def test_github_pages_origin_is_allowed_by_cors():
+    response = client.options(
+        "/api/v1/videos/upload",
+        headers={
+            "Origin": "https://virtualearthworld.github.io",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://virtualearthworld.github.io"
+
 def test_upload_rejects_unsupported_file_before_storage():
     response = client.post(
         "/api/v1/videos/upload",

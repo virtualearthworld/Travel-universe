@@ -10,7 +10,7 @@ The first integration milestone is to process the same private source video thro
 
 ## Architecture
 
-- **GitHub (this repository):** source code, worker adapters, this guide, and notebook source.
+- **GitHub (this repository):** source code, worker adapters, and this guide.
 - **iPad browser:** GitHub editing/review, Google Colab controls, Drive file selection, and Travel Universe viewer.
 - **Google Colab:** temporary CPU/GPU execution for FFmpeg, COLMAP, and gsplat.
 - **Google Drive:** private source videos, extracted frames, COLMAP output, checkpoints, and final SPZ files.

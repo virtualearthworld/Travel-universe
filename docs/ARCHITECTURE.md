@@ -3,10 +3,12 @@
 ## Product loop
 1. Creator uploads a standard travel video.
 2. API stores source media in S3-compatible storage and creates a reconstruction job.
-3. Worker extracts frames, estimates camera motion, and trains a 3D Gaussian Splatting scene (Phase 3).
-4. Scene artifacts (target delivery format: .spz where supported) are stored in object storage.
-5. Browser viewer renders the world through Three.js / React Three Fiber and a compatible Gaussian Splat renderer.
-6. Profiles, follows, feed, likes, comments, and sharing support discovery.
+3. Preprocessing worker validates the video and extracts frames.
+4. A CUDA-capable reconstruction worker estimates camera poses and trains a 3D Gaussian Splat scene (Phase 2).
+5. A validated scene artifact (target delivery format: .spz) is stored in object storage.
+6. Browser viewer loads the real artifact through the Spark Three.js renderer (Phase 3).
+7. The creator publishes the destination through the upload-to-world experience (Phase 4).
+8. Profiles, follows, feed, likes, comments, and sharing support discovery (Phase 5).
 
 ## Boundaries
 - apps/web: Next.js App Router, Tailwind, Zustand.
@@ -23,3 +25,4 @@
 - Treat .spz as a delivery artifact, not the training format.
 - Use signed, time-limited URLs for private media.
 - Version pipeline metadata for reproducibility.
+- A job is world-ready only after a real scene artifact passes validation and can be loaded by the browser viewer.

@@ -12,6 +12,10 @@ Travel Universe is a social travel-discovery product focused on one core experie
 - `packages/viewer`: Three.js / Spark Gaussian Splat viewer foundation.
 - `docs`: architecture, API conventions, roadmap and pipeline notes.
 
+## iPad-first Google Colab workflow
+
+The project now documents a no-new-hardware route for manually running reconstruction from an iPad using a temporary Google Colab runtime and private Google Drive storage. Start with [the Google Colab reconstruction guide](docs/GOOGLE_COLAB_WORKFLOW.md). Free GPU availability is not guaranteed, and Colab is not a persistent API/backend; the guide explains the manual workflow and its limits.
+
 ## Local development
 
 Requirements: Node.js 20.11+, Docker Compose v2 and Git.
@@ -38,7 +42,6 @@ The upload API accepts MP4, MOV and WebM up to 500 MB. By default, the standard 
 
 ## Cost and infrastructure boundary
 
-GitHub Pages hosts static frontend files. GitHub Actions runs temporary CI jobs; it is not a persistent API, object store, queue or GPU server. The project can be developed and its code tested through GitHub without buying hardware or creating another repository, but actual Gaussian Splat reconstruction still needs an available compatible compute runtime. No paid service or new hardware is assumed by this repository.
+GitHub Pages hosts static frontend files. GitHub Actions runs temporary CI jobs; it is not a persistent API, object store, queue or GPU server. Google Colab can be used as a manually started, temporary reconstruction runner, subject to free-tier resource availability and session limits. It does not automatically receive jobs from the public website. No paid service or new hardware is assumed by this repository.
 
-
-See [the video pipeline guide](docs/VIDEO_PIPELINE.md) for the opt-in orchestration requirements and exact compute limitations.
+See [the video pipeline guide](docs/VIDEO_PIPELINE.md) for the existing worker orchestration and [the Colab guide](docs/GOOGLE_COLAB_WORKFLOW.md) for the iPad-first manual workflow.

@@ -1,0 +1,21 @@
+# Optional NVIDIA-enabled worker image for local CUDA reconstruction.
+# Phase 1 only establishes the GPU-capable container; CUDA/PyTorch/gsplat
+# training dependencies and tasks are added in Phase 3.
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-venv ffmpeg ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /srv
+COPY apps/worker/requirements.txt ./requirements.txt
+RUN python3 -m pip install --no-cache-dir --break-system-packages -r requirements.txt
+COPY apps/worker/app.py ./app.py
+COPY apps/worker/colmap_pipeline.py ./colmap_pipeline.py
+COPY apps/worker/gaussian_splat_pipeline.py ./gaussian_splat_pipeline.py
+
+CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=INFO", "-Q", "gpu"]

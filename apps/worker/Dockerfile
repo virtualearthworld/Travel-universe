@@ -5,4 +5,5 @@ WORKDIR /srv
 COPY apps/worker/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 COPY apps/worker/app.py ./app.py
+COPY apps/worker/colmap_pipeline.py ./colmap_pipeline.py
 CMD ["celery", "-A", "app.celery_app", "worker", "--loglevel=INFO"]

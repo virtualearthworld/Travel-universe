@@ -13,7 +13,15 @@
 
 The API job response now exposes `world_ready`. It remains false for queued, running, failed, or preprocessing-only jobs. A job may be marked world-ready only when a future reconstruction worker returns `status: "world_ready"` and a non-empty `world_asset_key` for a validated scene. Extracted frames are not a 3D world.
 
-## API routes
+
+## Camera poses and sparse reconstruction (Phase 3)
+
+The worker now exposes a separate `reconstruction.estimate_camera_poses` Celery task. It consumes the saved frame ZIP, runs COLMAP feature extraction, sequential matching, and mapping in a deterministic order, validates the sparse model files, and stores a versioned sparse-reconstruction bundle.
+
+This stage requires the external `colmap` executable on the worker PATH. The standard CPU worker image does not install COLMAP automatically; install a compatible COLMAP build in the environment that will execute this task. GitHub CI uses mocked subprocess tests and does not claim to run COLMAP or process a real travel video.
+
+A successful result is `sparse_reconstruction_ready_gsplat_required`, not `world_ready`. Sparse camera poses and points are only the input to the next stage: CUDA-capable Gaussian Splat training, scene validation, and real `.spz` export.
+\n## API routes
 
 - `GET /health`: API process health.
 - `GET /api/v1`: API name and version.

@@ -26,6 +26,13 @@ def storage():
         region_name=os.getenv("S3_REGION", "us-east-1"),
     )
 
+def build_reconstruction_chain(video_id: str, reconstruction_inputs_key: str):
+    """Build CPU COLMAP followed by GPU-only Gaussian Splat training/export."""
+    return chain(
+        estimate_camera_poses.s(video_id, reconstruction_inputs_key),
+        train_gaussian_splats.s().set(queue="gpu"),
+    )
+
 @celery_app.task(name="reconstruction.healthcheck")
 def healthcheck() -> str:
     return "worker-ready"
@@ -96,11 +103,7 @@ def process_video(self, video_id: str, source_object_key: str, original_filename
         }
         if os.getenv("ENABLE_RECONSTRUCTION_PIPELINE", "false").lower() in {"1", "true", "yes"}:
             self.update_state(state="STARTED", meta={"stage": "queueing_colmap_reconstruction", "percent": 90})
-            workflow = chain(
-                estimate_camera_poses.s(video_id, output_key),
-                train_gaussian_splats.s().set(queue="gpu"),
-            )
-            return self.replace(workflow)
+            return self.replace(build_reconstruction_chain(video_id, output_key))
         return result
 
 

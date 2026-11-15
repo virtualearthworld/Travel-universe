@@ -2,16 +2,18 @@
 
 **Discover places. Enter worlds. Share the journey.**
 
-Travel Universe is a social travel-discovery product concept: creators upload ordinary travel videos, the platform prepares footage for 3D reconstruction, and viewers will eventually explore published destinations as immersive environments.
+Travel Universe is a social travel-discovery product focused on one core experience: upload an ordinary travel video and, when the reconstruction runtime is available, turn it into an explorable 3D destination.
 
 ## Repository
-- `apps/web`: Next.js, TypeScript, Tailwind CSS and Zustand.
-- `apps/api`: FastAPI upload and asynchronous job-status API.
-- `apps/worker`: Celery worker for video validation, FFmpeg frame extraction and reconstruction-input packaging.
-- `packages/viewer`: Three.js / React Three Fiber viewer foundation.
-- `docs`: architecture, API conventions, roadmap and video-pipeline notes.
+
+- `apps/web`: Next.js, TypeScript and Tailwind browser interface.
+- `apps/api`: FastAPI video upload, job status and world-asset delivery API.
+- `apps/worker`: Celery video preprocessing worker and reconstruction adapters.
+- `packages/viewer`: Three.js / Spark Gaussian Splat viewer foundation.
+- `docs`: architecture, API conventions, roadmap and pipeline notes.
 
 ## Local development
+
 Requirements: Node.js 20.11+, Docker Compose v2 and Git.
 
 ```bash
@@ -20,20 +22,20 @@ npm install
 docker compose up --build
 ```
 
-Open:
-- Web app: http://localhost:3000
-- Upload page: http://localhost:3000/upload
-- API health: http://localhost:8000/health
-- API docs: http://localhost:8000/docs
-- MinIO console: http://localhost:9001
+Open the web app at `http://localhost:3000`, upload at `/upload`, API health at `http://localhost:8000/health`, API docs at `http://localhost:8000/docs`, and MinIO console at `http://localhost:9001`.
 
-Use a short MP4, MOV or WebM clip for a first local upload. The upload service currently accepts files up to 500 MB; the worker accepts videos up to 10 minutes, extracts two frames per second, and stores a ZIP containing frames and metadata in the S3-compatible bucket.
+The upload API accepts MP4, MOV and WebM up to 500 MB. The current standard worker validates footage, extracts two frames per second, and stores a reconstruction-input ZIP. This is preprocessing, not a completed 3D conversion.
 
-## Current implementation status
-- Phase 1 repository and CI foundation: merged to `main`.
-- Video upload, object storage, Celery job queue, status polling, FFmpeg validation/frame extraction and input-bundle persistence: merged to `main` in PR #2.
-- Actual CUDA Gaussian-Splatting reconstruction, trained scene optimization, `.spz` export, and production interactive splat rendering: **not yet implemented**.
-- Authentication, user profiles, follow graph, feed, likes, comments and moderation: **not yet implemented**.
-- Production hosting, GPU infrastructure, secrets, backups and operational monitoring: **not configured**.
+## Implementation status (verified)
 
-The interface must never label extracted frames as a completed 3D world. A world is ready only after a real reconstruction artifact has been generated and validated.
+- Repository foundation, Next.js interface, GitHub Pages deployment, FastAPI upload endpoint, object storage integration, Redis/Celery queue and FFmpeg frame extraction are present.
+- A COLMAP adapter exists, but the standard worker image does not install COLMAP and the current upload task does not automatically run the COLMAP stage.
+- A Gaussian Splat adapter exists. It requires a CUDA-enabled PyTorch/gsplat environment plus externally configured `GSPLAT_TRAIN_COMMAND` and `SPLAT_EXPORT_COMMAND`; those dependencies and commands are not bundled or configured by GitHub Pages.
+- The Spark-based browser viewer can load a compatible scene URL. The upload-to-world handoff is being completed; a real scene from a user travel video has not yet been generated and validated.
+- Production API/object storage hosting, GPU execution, durable job records, authentication, secrets management, backups and operational monitoring are not configured.
+
+**Truthful completion rule:** a video is not a 3D world just because frames were extracted or a job finished. Travel Universe may show “world ready” only after a non-empty, validated SPZ scene exists and is accessible to the browser viewer.
+
+## Cost and infrastructure boundary
+
+GitHub Pages hosts static frontend files. GitHub Actions runs temporary CI jobs; it is not a persistent API, object store, queue or GPU server. The project can be developed and its code tested through GitHub without buying hardware or creating another repository, but actual Gaussian Splat reconstruction still needs an available compatible compute runtime. No paid service or new hardware is assumed by this repository.

@@ -14,7 +14,7 @@ Travel Universe is a social travel-discovery product focused on one core experie
 
 ## iPad-first Google Colab workflow
 
-The project now documents a no-new-hardware route for manually running reconstruction from an iPad using a temporary Google Colab runtime and private Google Drive storage. Start with [the Google Colab reconstruction guide](docs/GOOGLE_COLAB_WORKFLOW.md). Free GPU availability is not guaranteed, and Colab is not a persistent API/backend; the guide explains the manual workflow and its limits.
+The project now includes an iPad-first Google Colab guide and a ready-to-open notebook for manually running reconstruction from an iPad. Open the [Colab notebook](https://colab.research.google.com/github/virtualearthworld/Travel-universe/blob/main/notebooks/Travel_Universe_iPad_Reconstruction.ipynb) or read the [Google Colab reconstruction guide](docs/GOOGLE_COLAB_WORKFLOW.md). The notebook does not request GitHub credentials or mount Drive; video and results remain in the temporary Colab runtime until downloaded. Free GPU availability is not guaranteed, and Colab is not a persistent API/backend.
 
 ## Local development
 

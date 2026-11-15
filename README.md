@@ -31,7 +31,7 @@ Use a short MP4, MOV or WebM clip for a first local upload. The upload service c
 
 ## Current implementation status
 - Phase 1 repository and CI foundation: merged to `main`.
-- Video upload, object storage, Celery job queue, status polling, FFmpeg validation/frame extraction and input-bundle persistence: implemented on the video pipeline feature branch, pending CI/merge.
+- Video upload, object storage, Celery job queue, status polling, FFmpeg validation/frame extraction and input-bundle persistence: merged to `main` in PR #2.
 - Actual CUDA Gaussian-Splatting reconstruction, trained scene optimization, `.spz` export, and production interactive splat rendering: **not yet implemented**.
 - Authentication, user profiles, follow graph, feed, likes, comments and moderation: **not yet implemented**.
 - Production hosting, GPU infrastructure, secrets, backups and operational monitoring: **not configured**.

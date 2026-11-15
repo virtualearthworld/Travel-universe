@@ -13,11 +13,13 @@ ALLOWED_TYPES = {"video/mp4", "video/quicktime", "video/webm"}
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".webm"}
 BUCKET = os.getenv("S3_BUCKET", "travel-universe-media")
 REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+DEFAULT_CORS_ORIGINS = "http://localhost:3000,https://virtualearthworld.github.io"
+CORS_ORIGINS = [origin.strip().rstrip("/") for origin in os.getenv("CORS_ORIGINS", DEFAULT_CORS_ORIGINS).split(",") if origin.strip()]
 
 app = FastAPI(title="Travel Universe API", version=API_VERSION, description="Travel content, reconstruction jobs, and social discovery API.")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000").split(","),
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
@@ -40,7 +42,6 @@ def ensure_bucket(client: Any) -> None:
         try:
             client.create_bucket(Bucket=BUCKET)
         except ClientError as exc:
-            # A concurrent first upload may have created it already.
             try:
                 client.head_bucket(Bucket=BUCKET)
             except ClientError:
@@ -75,10 +76,17 @@ async def upload_video(file: UploadFile = File(...)) -> dict[str, str]:
         client.upload_fileobj(file.file, BUCKET, object_key, ExtraArgs={"ContentType": file.content_type})
     except ClientError as exc:
         raise HTTPException(status_code=503, detail="Could not store the video. Please retry.") from exc
-    task = celery.send_task(
-        "reconstruction.process_video",
-        kwargs={"video_id": video_id, "source_object_key": object_key, "original_filename": filename},
-    )
+    try:
+        task = celery.send_task(
+            "reconstruction.process_video",
+            kwargs={"video_id": video_id, "source_object_key": object_key, "original_filename": filename},
+        )
+    except Exception as exc:
+        try:
+            client.delete_object(Bucket=BUCKET, Key=object_key)
+        except ClientError:
+            pass
+        raise HTTPException(status_code=503, detail="The processing queue is unavailable. Please retry later.") from exc
     return {"video_id": video_id, "job_id": task.id, "status": "queued", "message": "Video uploaded and queued for processing."}
 
 @app.get("/api/v1/jobs/{job_id}", tags=["reconstruction"])

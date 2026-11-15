@@ -1,7 +1,7 @@
-# Video upload and preprocessing
+# Video upload and reconstruction pipeline
 
-## Local flow
-1. Start the stack with `docker compose up --build`.
+## Current preprocessing flow
+1. Start the local stack with `docker compose up --build`.
 2. Open `http://localhost:3000/upload`.
 3. Select an MP4, MOV or WebM file (maximum 500 MB).
 4. The API validates the extension/MIME type and stores the source in MinIO.
@@ -9,6 +9,8 @@
 6. The page polls `GET /api/v1/jobs/{job_id}`.
 7. The worker uses ffprobe to validate duration (1–600 seconds) and video stream, then FFmpeg samples at 2 frames/second.
 8. The worker stores `reconstruction-inputs/{video_id}/inputs.zip` with JPEG frames and metadata.
+
+This is preprocessing only. It does not yet estimate camera poses, train a Gaussian Splat, or create a 3D world.
 
 ## API
 - `GET /health`: service health.
@@ -24,8 +26,12 @@
 - The current local Compose credentials are development-only and must be replaced before exposure to the internet.
 - Add authentication, per-user quotas, malware/content scanning, durable database records, resumable uploads and signed download URLs before production use.
 
-## Reconstruction boundary
-Frame extraction is only input preparation. A separate CUDA-capable worker must run camera/pose estimation and a compatible Gaussian-Splatting training pipeline, optimize/validate the result, package a real `.spz` artifact, and publish a durable world record. Until this exists, job completion means **preprocessing completed**, not **3D world ready**. No GPU trainer is configured in this repository yet.
+## Phase 2 reconstruction boundary
+A separate CUDA-capable worker must run camera/pose estimation and a compatible Gaussian-Splatting training pipeline, optimize and validate the result, package a real `.spz` artifact, and publish a durable world record. Until this exists, job completion means **preprocessing completed**, not **3D world ready**. No GPU trainer is configured in this repository yet. Do not mark a job as world-ready based only on extracted frames or a placeholder artifact.
 
 ## Browser world viewer
-The web app has an `/world` route backed by the Three.js Gaussian Splat viewer package. Paste a browser-accessible scene URL ending in `.ply`, `.splat`, or `.ksplat`. The viewer uses its built-in orbit controls. The selected renderer does **not** load `.spz` directly; convert SPZ output to a supported PLY/KSPLAT format before serving it. The scene host must allow cross-origin browser requests. This is a viewer integration, not a generated scene; no sample 3D world is bundled.
+The `/world` route uses Three.js and `@sparkjsdev/spark` 2.4.x. Spark documents support for `.ply`, `.spz`, `.splat`, `.ksplat`, and `.sog` scene formats. A scene URL must be reachable by the browser and its host must allow cross-origin requests. The viewer currently provides orbit controls; it is a renderer integration, not a reconstruction engine. No generated sample travel world is bundled.
+
+References:
+- [Spark package and supported formats](https://www.npmjs.com/package/@sparkjsdev/spark)
+- [Spark loading splats documentation](https://sparkjs.dev/docs/loading-splats/)

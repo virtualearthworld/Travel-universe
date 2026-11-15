@@ -15,11 +15,11 @@ The product's core promise is converting an ordinary travel video into a real, e
 - [x] Add Gaussian Splat training/export adapter with explicit CUDA and exporter validation
 - [ ] Install and pin a compatible COLMAP runtime in the worker environment
 - [ ] Install and pin a compatible CUDA/PyTorch/gsplat runtime and verified SPZ exporter
-- [ ] Orchestrate preprocessing → COLMAP → Gaussian Splat training → SPZ publication as one job
+- [x] Add opt-in Celery orchestration from preprocessing → COLMAP → GPU Gaussian Splat training → SPZ publication
 - [ ] Validate reconstruction quality on representative travel footage
 - [ ] Persist durable job state, retries and cancellation
 
-**Acceptance gate:** a representative travel video must produce a real, non-empty, valid Gaussian Splat scene artifact. Extracted frames, sparse points, adapter code, or a demo scene do not count as reconstruction success.
+**Acceptance gate:** orchestration code is implemented and CPU-tested, but a representative travel video must still produce a real, non-empty, valid Gaussian Splat scene artifact before reconstruction is considered complete. Extracted frames, sparse points, adapter code, or a demo scene do not count as reconstruction success.
 
 ## Phase 3 — Interactive 3D world viewer
 - [x] Integrate the Spark Three.js Gaussian Splat renderer foundation

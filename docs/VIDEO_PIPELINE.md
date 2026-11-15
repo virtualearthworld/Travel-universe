@@ -1,54 +1,43 @@
 # Video upload and reconstruction pipeline
 
-## Current preprocessing flow
-1. Start the local stack with `docker compose up --build`.
-2. Open `http://localhost:3000/upload`.
-3. Select an MP4, MOV or WebM file (maximum 500 MB).
-4. The API validates the extension/MIME type and stores the source in S3-compatible storage.
-5. The API enqueues `reconstruction.process_video` in Redis/Celery and returns a video ID and job ID.
-6. The page polls `GET /api/v1/jobs/{job_id}`.
-7. The worker uses ffprobe to validate duration (1–600 seconds) and video stream, then FFmpeg samples at 2 frames/second.
-8. The worker stores `reconstruction-inputs/{video_id}/inputs.zip` with JPEG frames and metadata.
+## Current pipeline stages
 
-This is preprocessing only. It does not yet estimate camera poses, train a Gaussian Splat, or create a 3D world.
+1. **Upload:** the API accepts MP4, MOV, or WebM files up to 500 MB.
+2. **Store:** the original video is saved to S3-compatible object storage.
+3. **Queue:** a Celery job is submitted to Redis and a job ID is returned.
+4. **Inspect:** the worker uses ffprobe to validate a video stream and a 1–600 second duration.
+5. **Prepare:** FFmpeg samples frames at 2 frames per second and creates a metadata manifest.
+6. **Package:** the frames and manifest are stored as `reconstruction-inputs/{video_id}/inputs.zip`.
+7. **Reconstruct (not yet implemented):** camera pose estimation / structure-from-motion, Gaussian Splat training, optimization, and real `.spz` export.
+8. **Publish (not yet implemented):** validate the generated scene and register a durable world asset for the browser viewer.
 
-## API
-- `GET /health`: service health.
-- `GET /api/v1`: API identity/version.
+The API job response now exposes `world_ready`. It remains false for queued, running, failed, or preprocessing-only jobs. A job may be marked world-ready only when a future reconstruction worker returns `status: "world_ready"` and a non-empty `world_asset_key` for a validated scene. Extracted frames are not a 3D world.
+
+## API routes
+
+- `GET /health`: API process health.
+- `GET /api/v1`: API name and version.
 - `POST /api/v1/videos/upload`: multipart field `file`; returns HTTP 202 with `video_id`, `job_id`, and queue status.
-- `GET /api/v1/jobs/{job_id}`: Celery state, progress metadata, and terminal result/error.
+- `GET /api/v1/jobs/{job_id}`: Celery state, progress metadata, terminal result, and explicit `world_ready` boolean.
 
-## Render deployment preparation
-The repository includes a Render Blueprint at `render.yaml` defining the FastAPI service, Celery background worker, and managed Redis service. It is a deployment template only; adding the file does not create services or incur charges.
+## Reliability safeguards
 
-**Cost warning:** the blueprint currently specifies Render's `starter` plans for the API, worker, and Redis. These are not a free deployment. Review Render's live pricing and choose whether to deploy before creating the services. S3-compatible object storage is separate and must also be provisioned. The blueprint intentionally leaves the storage endpoint and credentials as manual environment values; never commit those secrets.
+- Compose waits for PostgreSQL, Redis, and MinIO health before starting the API/worker.
+- Bucket creation is attempted only when the bucket is reported missing. Permission errors and storage outages are surfaced as service-unavailable errors instead of being mistaken for a missing bucket.
+- If queue submission fails after upload, the API attempts to delete the orphaned source object.
+- The worker uses a temporary workspace and stores its input archive under a video-specific key.
+- The current worker result is explicitly `frames_extracted_gpu_stage_required`, never `world_ready`.
 
-When storage is ready, set `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, and `S3_REGION` for both API and worker. The blueprint uses Redis's private connection string for both services. After deployment, copy the API's public HTTPS URL into the GitHub repository variable `NEXT_PUBLIC_API_URL`, then rerun the **Deploy Travel Universe website** workflow.
+## Testing and deployment boundary
 
-## Connect the hosted website
-The GitHub Pages frontend is static, so the API must run as a separate public HTTPS service. Configure the GitHub repository variable `NEXT_PUBLIC_API_URL` with the API's public base URL (no trailing slash), then rerun the **Deploy Travel Universe website** workflow so the URL is embedded in the frontend build.
+GitHub Actions can test the API contract, worker code, and Compose configuration. It is not a persistent video-processing server and does not provide a production GPU reconstruction service. GitHub Pages hosts only the static website; it cannot run FastAPI, Redis, MinIO, or the 3D reconstruction worker.
 
-Configure the API service with:
-- `CORS_ORIGINS=https://virtualearthworld.github.io`
-- `REDIS_URL` pointing to a reachable Redis service
-- `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, and `S3_REGION` pointing to durable S3-compatible object storage
-- `MAX_VIDEO_BYTES` is currently fixed at 500 MB in the API code
+This project is being developed and checked through GitHub, GitHub Actions, and ChatGPT without requiring a hardware purchase, paid hosting, or a separate repository. The full 2D-video-to-3D-world goal remains the target. A compatible reconstruction runtime must eventually execute camera/pose estimation and Gaussian Splat training; this phase does not pretend that stage has already happened.
 
-Run the same worker image as a separate always-on background service with the same `REDIS_URL` and S3 settings. The API alone cannot process queued videos. The public API URL must support HTTPS, multipart requests up to 500 MB, and the `/health` and `/api/v1` routes.
+## Current limits
 
-Do not expose the local MinIO or Redis ports to the public internet. Use private service networking or authenticated managed services. Set strong unique credentials; never commit secrets to GitHub. GitHub Pages cannot host FastAPI, Redis, object storage, or a background worker.
-
-**Deployment boundary:** the repository now passes the API URL into the static frontend build and permits the GitHub Pages origin in API CORS. A live backend is not provisioned by this repository change; it still requires a hosting provider, durable object storage, Redis, and deployment credentials. Until those services exist and pass an end-to-end upload test, public uploads remain unavailable.
-
-## Limits and deployment notes
-- API upload limit: 500 MB.
-- Worker clip duration limit: 10 minutes.
-- Supported extensions/MIME types: MP4, MOV/QuickTime, WebM.
-- The current local Compose credentials are development-only and must be replaced before exposure to the internet.
-- Add authentication, per-user quotas, malware/content scanning, durable database records, resumable uploads and signed download URLs before production use.
-
-## Phase 2 reconstruction boundary
-A separate CUDA-capable worker must run camera/pose estimation and a compatible Gaussian-Splatting training pipeline, optimize and validate the result, package a real `.spz` artifact, and publish a durable world record. Until this exists, job completion means **preprocessing completed**, not **3D world ready**. No GPU trainer is configured in this repository yet. Do not mark a job as world-ready based only on extracted frames or a placeholder artifact.
-
-## Browser world viewer
-The `/world` route uses Three.js and `@sparkjsdev/spark` 2.4.x. Spark supports `.ply`, `.spz`, `.splat`, `.ksplat`, and `.sog` scene formats. A scene URL must be reachable by the browser and its host must allow cross-origin requests. The viewer currently provides orbit controls; it is a renderer integration, not a reconstruction engine. No generated sample travel world is bundled.
+- Upload maximum: 500 MB.
+- Video duration: 1–600 seconds.
+- Supported formats: MP4, MOV/QuickTime, WebM.
+- No production authentication, user quotas, resumable uploads, malware scanning, persistent relational job records, signed asset URLs, or live public backend yet.
+- The viewer is a rendering surface, not a video-to-3D reconstruction engine.

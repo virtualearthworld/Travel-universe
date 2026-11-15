@@ -58,13 +58,13 @@ def run_colmap_sparse_reconstruction(
             "--image_path", str(images),
             "--ImageReader.single_camera", "1",
             # Avoid OpenGL/CUDA context creation in headless Colab.
-            "--FeatureExtraction.use_gpu", "0",
-            "--FeatureExtraction.num_threads", "4",
+            "--SiftExtraction.use_gpu", "0",
+            "--SiftExtraction.num_threads", "4",
         ],
         [
             binary, "sequential_matcher",
             "--database_path", str(database),
-            "--FeatureMatching.use_gpu", "0",
+            "--SiftMatching.use_gpu", "0",
         ],
         [
             binary, "mapper",
@@ -78,6 +78,10 @@ def run_colmap_sparse_reconstruction(
     # to use their offscreen platform plugin instead of trying to open a display.
     colmap_env = os.environ.copy()
     colmap_env.setdefault("QT_QPA_PLATFORM", "offscreen")
+    # Force Mesa software rendering as a fallback for headless COLMAP builds.
+    colmap_env.setdefault("QT_OPENGL", "software")
+    colmap_env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+    colmap_env.setdefault("EGL_PLATFORM", "surfaceless")
 
     for command in commands:
         try:

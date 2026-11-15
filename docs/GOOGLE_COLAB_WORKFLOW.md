@@ -8,6 +8,10 @@ This guide uses **Google Colab as a manually started, temporary reconstruction r
 
 The first integration milestone is to process the same private source video through COLMAP, gsplat training, and SPZ export in Colab. Only after a real SPZ is produced and the viewer loads it should the app report `world_ready`.
 
+## Ready-to-open iPad notebook
+
+A ready-to-open notebook is available at [`notebooks/Travel_Universe_iPad_Reconstruction.ipynb`](../notebooks/Travel_Universe_iPad_Reconstruction.ipynb). Open it in Colab with this link: https://colab.research.google.com/github/virtualearthworld/Travel-universe/blob/main/notebooks/Travel_Universe_iPad_Reconstruction.ipynb. It deliberately does not mount Google Drive or request GitHub credentials: the selected video stays in the temporary Colab runtime and the resulting SPZ is downloaded to the iPad. This reduces account permissions, but means you must download the result before the runtime ends. The notebook is a first-run pipeline and still requires a successful real-video run to validate package compatibility and visual quality.
+
 ## Architecture
 
 - **GitHub (this repository):** source code, worker adapters, and this guide.
